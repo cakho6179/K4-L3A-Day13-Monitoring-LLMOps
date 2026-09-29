@@ -8,7 +8,7 @@
 - **MSSV:** 2A202602744
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/cakho6179/K4-L3A-Day13-Monitoring-LLMOps
-- **Commit SHA cuối:** 3746de435b10f4c7521346cff90562e37dfe49f3
+- **Commit SHA cuối:** f5773c078a6d620fa9e011ed892b00aeceae654c
 - **Challenge ID:** day13-k4-l3a-monitoring-llmops-v1 (cohort K4; file `config/challenge.json` đã gitignored, không commit)
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602744`
 
