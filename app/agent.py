@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Any, Iterator
 
 from . import metrics
 from .mock_llm import FakeLLM
@@ -21,6 +23,19 @@ class AgentResult:
     tokens_out: int
     cost_usd: float
     quality_score: float
+
+
+@contextmanager
+def _child_observation(client: Any, **kwargs: Any) -> Iterator[Any]:
+    starter = getattr(client, "start_as_current_observation", None)
+    if callable(starter):
+        try:
+            with starter(**kwargs) as obs:
+                yield obs
+            return
+        except Exception:
+            pass
+    yield None
 
 
 class LabAgent:
@@ -51,7 +66,27 @@ class LabAgent:
             },
         ):
             started = time.perf_counter()
-            docs = retrieve(message)
+            with _child_observation(
+                langfuse_client,
+                name="retrieval",
+                as_type="retriever",
+                input=summarize_text(message),
+                metadata={"correlation_id": correlation_id, "feature": feature},
+            ):
+                docs = retrieve(message)
+                try:
+                    langfuse_client.update_current_span(
+                        output={
+                            "doc_count": len(docs),
+                            "docs_preview": summarize_text(" | ".join(docs)),
+                        },
+                        metadata={
+                            "correlation_id": correlation_id,
+                            "doc_count": len(docs),
+                        },
+                    )
+                except Exception:
+                    pass
             prompt = resolve_prompt(
                 langfuse_client,
                 feature=feature,
@@ -71,10 +106,42 @@ class LabAgent:
                 },
                 version=prompt.version,
             )
-            # TODO (CP2): instrument retrieve() and FakeLLM.generate() as child
-            # observations. The nested generation must receive prompt, usage and cost.
+            # Retrieval + LLM instrumented as child observations (CP2).
+            # Generation carries model, prompt, usage and cost; no raw PII.
             with propagate_attributes(prompt=prompt.managed_prompt):
-                response = self.llm.generate(prompt.text)
+                with _child_observation(
+                    langfuse_client,
+                    name="llm-generation",
+                    as_type="generation",
+                    model=self.model,
+                    prompt=prompt.managed_prompt,
+                    input=summarize_text(prompt.text),
+                    metadata={"correlation_id": correlation_id, "feature": feature},
+                ):
+                    response = self.llm.generate(prompt.text)
+                    try:
+                        updater = getattr(langfuse_client, "update_current_generation", None)
+                        if callable(updater):
+                            updater(
+                                model=self.model,
+                                prompt=prompt.managed_prompt,
+                                input=summarize_text(prompt.text),
+                                output=summarize_text(response.text),
+                                usage_details={
+                                    "input": response.usage.input_tokens,
+                                    "output": response.usage.output_tokens,
+                                    "total": response.usage.input_tokens + response.usage.output_tokens,
+                                },
+                                cost_details={
+                                    "total": self._estimate_cost(
+                                        response.usage.input_tokens,
+                                        response.usage.output_tokens,
+                                    )
+                                },
+                                metadata={"correlation_id": correlation_id},
+                            )
+                    except Exception:
+                        pass
             quality_score = self._heuristic_quality(message, response.text, docs)
             latency_ms = int((time.perf_counter() - started) * 1000)
             cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)

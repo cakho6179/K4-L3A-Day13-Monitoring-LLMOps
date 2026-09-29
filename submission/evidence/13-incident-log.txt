@@ -1,0 +1,38 @@
+{
+  "service": "api",
+  "payload": {
+    "message_preview": "Which signal should be checked after latency increases?"
+  },
+  "event": "request_received",
+  "correlation_id": "req-e13fcfaf",
+  "user_id_hash": "4570299f37e2",
+  "session_id": "k4-l3a-challenge-s04",
+  "env": "dev",
+  "model": "claude-sonnet-4-5",
+  "feature": "monitoring",
+  "level": "info",
+  "ts": "2026-09-29T10:50:40.215641Z"
+}
+{
+  "service": "api",
+  "latency_ms": 2654,
+  "ttft_ms": 50,
+  "tokens_in": 49,
+  "tokens_out": 178,
+  "cost_usd": 0.002817,
+  "quality_score": 0.9,
+  "tool_name": "retrieval",
+  "tool_success": true,
+  "payload": {
+    "answer_preview": "Starter answer. You should improve this output logic and add better quality chec..."
+  },
+  "event": "response_sent",
+  "correlation_id": "req-e13fcfaf",
+  "user_id_hash": "4570299f37e2",
+  "session_id": "k4-l3a-challenge-s04",
+  "env": "dev",
+  "model": "claude-sonnet-4-5",
+  "feature": "monitoring",
+  "level": "info",
+  "ts": "2026-09-29T10:50:42.871866Z"
+}

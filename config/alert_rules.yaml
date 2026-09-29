@@ -1,25 +1,31 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
-    duration: TODO
+  - name: SlowResponsesP95
+    severity: critical
+    condition: 'percentile(latency_ms, 95) > 3000ms on event == "response_sent"'
+    duration: 5m
     type: symptom-based
     channel: slack
-    owner: TODO
+    slack_channel: "#day13-alerts"
+    owner: backend-oncall
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
-    duration: TODO
+    sli: fast_successful_requests
+  - name: FailedRequestsErrorRate
+    severity: critical
+    condition: 'error_rate = count(event == "request_failed") / count(event == "request_received") * 100 > 2 OR retrieval_success_rate < 90'
+    duration: 5m
     type: symptom-based
     channel: slack
-    owner: TODO
+    slack_channel: "#day13-alerts"
+    owner: backend-oncall
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
-    duration: TODO
+    sli: fast_successful_requests
+  - name: QualityDropCostSpike
+    severity: warning
+    condition: 'mean(quality_score) < 0.75 on event == "response_sent" over 15m OR sum(cost_usd) > 2.5 per day'
+    duration: 15m
     type: symptom-based
     channel: slack
-    owner: TODO
+    slack_channel: "#day13-alerts"
+    owner: llmops-oncall
     runbook: docs/alerts.md#alert-3
+    sli: quality_proxy
